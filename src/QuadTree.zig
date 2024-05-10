@@ -217,6 +217,21 @@ pub fn QuadTree(
             try DisplayFn.display_node(self.root, 0);
         }
 
+        pub fn print_as_grid(self: Self) !void {
+            const const_max_pos = @as(u32, 1) << @intCast(self.tree_height);
+            for (0..const_max_pos) |y| {
+                for (0..const_max_pos) |x| {
+                    const leaf = self.local_pos_get(.{ @intCast(x), @intCast(y) });
+                    if (leaf != null) {
+                        std.debug.print("X ", .{});
+                    } else {
+                        std.debug.print("O ", .{});
+                    }
+                }
+                std.debug.print("\n", .{});
+            }
+        }
+
         // increases the height of the quadtree by one by adding a new root node and making the current root a child of this new root
         fn increase_height(self: *Self) !void {
             self.tree_height += 1;
