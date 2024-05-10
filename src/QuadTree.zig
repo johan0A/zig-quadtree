@@ -115,7 +115,7 @@ pub fn QuadTree(
             }
 
             var local_pos = pos - self.min_pos.?;
-            var max_pos = std.math.pow(@TypeOf(self.tree_height), 2, self.tree_height);
+            var max_pos = @as(u32, 1) << @intCast(self.tree_height);
             while (local_pos[0] < 0 or local_pos[1] < 0 or local_pos[0] >= max_pos or local_pos[1] >= max_pos) {
                 try self.increase_height();
                 local_pos = pos - self.min_pos.?;
@@ -193,11 +193,11 @@ pub fn QuadTree(
 
         // display of the quadtree in the terminal as a tree for debugging purposes
         // also serves as an example of how to traverse the quadtree
-        pub fn display(self: Self) !void {
+        pub fn print_as_tree(self: Self) !void {
             const DisplayFn = struct {
                 fn display_node(node: Node, depth: u32) !void {
                     for (0..depth) |_| {
-                        std.debug.print("  ", .{});
+                        std.debug.print("   ", .{});
                     }
 
                     switch (node) {
