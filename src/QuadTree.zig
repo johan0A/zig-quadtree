@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub fn QuadTree(
     comptime Leaf: type,
-    comptime deinitFn: fn (*Leaf) void,
+    comptime deinitFn: ?fn (*Leaf) void,
 ) type {
     return struct {
         pub const Node = union(enum) {
@@ -29,6 +29,46 @@ pub fn QuadTree(
                 .min_pos = null,
                 .tree_height = 0,
             };
+        }
+
+        pub fn deinit(self: *Self) void {
+            const DeinitFn = struct {
+                fn deinit_node(node: Node, allocator: std.mem.Allocator) void {
+                    switch (node) {
+                        .empty => {},
+                        .leaf => {},
+                        .branch => {
+                            for (node.branch.children) |row| {
+                                for (row) |child| {
+                                    deinit_node(child, allocator);
+                                }
+                            }
+                            allocator.destroy(node.branch);
+                        },
+                    }
+                }
+            };
+            DeinitFn.deinit_node(self.root, self.allocator);
+        }
+
+        pub fn deinitWithLeaves(self: *Self) void {
+            const DeinitFn = struct {
+                fn deinit_node(node: Node, allocator: std.mem.Allocator) void {
+                    switch (node) {
+                        .empty => {},
+                        .leaf => if (deinitFn != null) deinitFn(node.leaf.*),
+                        .branch => {
+                            for (node.branch.children) |row| {
+                                for (row) |child| {
+                                    try deinit_node(child, allocator);
+                                }
+                            }
+                            allocator.destroy(node.branch);
+                        },
+                    }
+                }
+            };
+            DeinitFn.deinit_node(self.root, self.allocator);
         }
 
         // places a leaf at the given position in the quadtree, will return the existing leaf at that position if it exists
@@ -92,7 +132,7 @@ pub fn QuadTree(
             pos: @Vector(2, i32),
         ) !void {
             if (try swap(self, leaf, pos)) |existing_leaf| {
-                deinitFn(existing_leaf);
+                if (deinitFn != null) deinitFn(existing_leaf);
             }
         }
 
