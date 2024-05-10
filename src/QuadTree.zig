@@ -71,6 +71,37 @@ pub fn QuadTree(
             DeinitFn.deinit_node(self.root, self.allocator);
         }
 
+        fn local_pos_get(self: Self, local_pos: @Vector(2, i32)) ?*Leaf {
+            var local_pos_ = local_pos;
+            var current_node_height = self.tree_height;
+            var current_node = &self.root;
+
+            while (current_node_height > 0) : (current_node_height -= 1) {
+                switch (current_node.*) {
+                    .empty => {
+                        return null;
+                    },
+                    .branch => {},
+                    .leaf => unreachable,
+                }
+                const half_size = @as(usize, 1) << @intCast(current_node_height - 1);
+                const child_index_x: usize = @intFromBool(local_pos_[1] >= half_size);
+                const child_index_y: usize = @intFromBool(local_pos_[0] >= half_size);
+                if (child_index_x == 1) local_pos_[1] -= @intCast(half_size);
+                if (child_index_y == 1) local_pos_[0] -= @intCast(half_size);
+                current_node = &current_node.branch.children[child_index_x][child_index_y];
+            }
+            if (current_node.* == .empty) {
+                return null;
+            }
+            return current_node.*.leaf;
+        }
+
+        pub fn get(self: Self, pos: @Vector(2, i32)) ?*Leaf {
+            const local_pos = pos - self.min_pos.?;
+            return local_pos_get(self, local_pos);
+        }
+
         // places a leaf at the given position in the quadtree, will return the existing leaf at that position if it exists
         pub fn swap(
             self: *Self,
